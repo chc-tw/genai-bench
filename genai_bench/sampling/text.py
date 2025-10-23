@@ -1,3 +1,4 @@
+import json
 import random
 from typing import Any, Dict, List, Optional
 
@@ -75,6 +76,8 @@ class TextSampler(Sampler):
             self.additional_request_params["ignore_eos"] = True
 
         prompt = self._sample_text(num_input_tokens)
+        if isinstance(prompt, list):
+            prompt = json.dumps(prompt)
         num_prefill_tokens = self.get_token_length(prompt)
         if num_input_tokens is not None:
             self._check_discrepancy(num_input_tokens, num_prefill_tokens, threshold=0.1)

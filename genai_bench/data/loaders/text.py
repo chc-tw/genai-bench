@@ -3,6 +3,8 @@ from typing import Any, List, Set
 from genai_bench.data.loaders.base import DatasetFormat, DatasetLoader
 from genai_bench.logging import init_logger
 
+from datasets import DatasetDict as HFDatasetDict
+
 logger = init_logger(__name__)
 
 
@@ -30,6 +32,14 @@ class TextDatasetLoader(DatasetLoader):
         # Handle dictionary data (from CSV files) or HuggingFace datasets
         prompt_column = self.dataset_config.prompt_column
         try:
+            if isinstance(data, HFDatasetDict):
+                available_splits = list(data.keys())
+                if not available_splits:
+                    raise ValueError(
+                        "HuggingFace DatasetDict has no splits to select from."
+                    )
+                chosen_split = "train" if "train" in data else available_splits[0]
+                data = data[chosen_split]
             column_data = data[prompt_column]
             # Ensure we return a list of strings
             if isinstance(column_data, list):

@@ -50,7 +50,7 @@ class OpenAIUser(BaseUser):
     def chat(self):
         endpoint = "/v1/chat/completions"
         user_request = self.sample()
-
+        # logger.info(user_request)
         if not isinstance(user_request, UserChatRequest):
             raise AttributeError(
                 f"user_request should be of type "
@@ -176,6 +176,11 @@ class OpenAIUser(BaseUser):
                     status_code=response.status_code,
                     error_message=response.text,
                 )
+            # target_T_loop = random.expovariate(1.0 / self.lambda_)
+            # T_wait = target_T_loop - (non_stream_post_end_time - start_time)
+            # if T_wait > 0:
+            #     time.sleep(T_wait)
+                
         except requests.exceptions.ConnectionError as e:
             metrics_response = UserResponse(
                 status_code=503, error_message=f"Connection error: {e}"

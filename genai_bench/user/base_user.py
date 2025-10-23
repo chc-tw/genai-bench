@@ -1,4 +1,4 @@
-from locust import HttpUser
+from locust import HttpUser, constant
 
 from typing import Dict
 from numpy.random import exponential
@@ -14,15 +14,17 @@ class BaseUser(HttpUser):
 
     def wait_time(self) -> float:
         return exponential(1.0 / self.lambda_)
+    # wait_time = constant(0)
 
     def __new__(cls, *args, **kwargs):
         if cls is BaseUser:
             raise TypeError("BaseUser is not meant to be instantiated directly.")
         return super().__new__(cls)
 
-    def __init__(self, lambda_: float = 3.0, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
+        # Extract lambda_ from kwargs if provided, otherwise use default
+        self.lambda_ = kwargs.pop('lambda_', 1.0)
         super().__init__(*args, **kwargs)
-        self.lambda_ = lambda_
 
     @classmethod
     def is_task_supported(cls, task: str) -> bool:
