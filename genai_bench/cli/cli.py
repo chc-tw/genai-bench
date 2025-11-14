@@ -7,6 +7,9 @@ import time
 from pathlib import Path
 
 import click
+import gevent
+from gevent.pool import Pool
+from numpy.random import exponential
 
 from genai_bench.analysis.excel_report import create_workbook
 from genai_bench.analysis.experiment_loader import load_one_experiment
@@ -22,6 +25,7 @@ from genai_bench.cli.option_groups import (
     model_auth_options,
     object_storage_options,
     oci_auth_options,
+    poisson_options,
     sampling_options,
     server_options,
     storage_auth_options,
@@ -39,6 +43,9 @@ from genai_bench.storage.factory import StorageFactory
 from genai_bench.ui.dashboard import create_dashboard
 from genai_bench.utils import calculate_sonnet_char_token_ratio, sanitize_string
 from genai_bench.version import __version__ as GENAI_BENCH_VERSION
+
+
+logger = init_logger(__name__)
 
 
 @click.group()
@@ -66,6 +73,7 @@ def cli(ctx):
 @distributed_locust_options
 @object_storage_options
 @storage_auth_options
+@poisson_options
 @click.pass_context
 def benchmark(
     ctx,
@@ -142,6 +150,7 @@ def benchmark(
     github_owner,
     github_repo,
     metrics_time_unit,
+    poisson_arrival_rate,
 ):
     """
     Run a benchmark based on user defined scenarios.
@@ -152,8 +161,6 @@ def benchmark(
     # Initialize logging with the layout for the log panel
     logging_manager = LoggingManager("benchmark", dashboard.layout, dashboard.live)
     delayed_log_handler = logging_manager.delayed_handler
-    logger = init_logger("genai_bench.benchmark")
-
     logger.info(
         f"👋 Welcome to genai-bench {GENAI_BENCH_VERSION}! I am an intelligent "
         "benchmark tool for Large Language Model."
@@ -314,6 +321,12 @@ def benchmark(
         f"This experiment will be saved in folder {experiment_folder_abs_path}."
     )
 
+    # Determine the final iteration_type for metadata
+    # If poisson_arrival_rate is provided, it takes priority
+    metadata_iteration_type = iteration_type
+    if poisson_arrival_rate and len(poisson_arrival_rate) > 0:
+        metadata_iteration_type = "poisson_arrival_rate"
+
     experiment_metadata = ExperimentMetadata(
         cmd=cmd_line,
         benchmark_version=GENAI_BENCH_VERSION,
@@ -325,7 +338,8 @@ def benchmark(
         task=task,
         num_concurrency=num_concurrency,
         batch_size=batch_size,
-        iteration_type=iteration_type,
+        poisson_arrival_rate=list(poisson_arrival_rate) if poisson_arrival_rate else None,
+        iteration_type=metadata_iteration_type,
         traffic_scenario=traffic_scenario,
         server_engine=server_engine,
         server_version=server_version,
@@ -360,6 +374,7 @@ def benchmark(
         config=config,
         dashboard=dashboard,
     )
+    logger.info(f"Number of workers: {config.num_workers}")
     runner.setup()
 
     # Worker process doesn't need to run the main benchmark flow as it only
@@ -374,7 +389,12 @@ def benchmark(
 
     # Iterate over each scenario_str and concurrency level,
     # and run the experiment
-    iteration_values = batch_size if iteration_type == "batch_size" else num_concurrency
+    # If poisson_arrival_rate is provided, use it for iteration
+    if poisson_arrival_rate and len(poisson_arrival_rate) > 0:
+        iteration_values = poisson_arrival_rate
+        iteration_type = "poisson_arrival_rate"
+    else:
+        iteration_values = batch_size if iteration_type == "batch_size" else num_concurrency
     total_runs = len(traffic_scenario) * len(iteration_values)
     with dashboard.live:
         for scenario_str in traffic_scenario:
@@ -391,9 +411,18 @@ def benchmark(
             for iteration in iteration_values:
                 dashboard.reset_panels()
                 # Create a new progress bar on dashboard
-                iteration_header, batch_size, concurrency = get_run_params(
-                    iteration_type, iteration
-                )
+                # Handle poisson_arrival_rate iteration type separately
+                if iteration_type == "poisson_arrival_rate":
+                    iteration_header = "Poisson Arrival Rate"
+                    batch_size = 1
+                    concurrency = 1  # Not used in Poisson mode
+                    current_arrival_rate = iteration
+                else:
+                    iteration_header, batch_size, concurrency = get_run_params(
+                        iteration_type, iteration
+                    )
+                    current_arrival_rate = None
+                
                 dashboard.create_benchmark_progress_task(
                     f"Scenario: {scenario_str}, {iteration_header}: {iteration}"
                 )
@@ -413,17 +442,39 @@ def benchmark(
                 actual_spawn_rate = (
                     spawn_rate if spawn_rate is not None else concurrency
                 )
-                logger.info(
-                    f"Starting benchmark with concurrency={concurrency}, "
-                    f"spawn_rate={actual_spawn_rate}"
-                )
-                environment.runner.start(concurrency, spawn_rate=actual_spawn_rate)
+                
+                # Check if we're using Poisson arrival rate mode
+                if current_arrival_rate is not None:
+                    logger.info(
+                        f"Starting Poisson arrival rate benchmark with "
+                        f"arrival_rate={current_arrival_rate} users/second"
+                    )
+                    num_requests = 0
+                    start_time = time.monotonic()
+                    while num_requests < max_requests_per_run:
+                        wait_time = exponential(1.0 / current_arrival_rate)
+                        time.sleep(wait_time)
+                        num_requests += 1
+                        environment.runner.spawn_users({user_class.__name__: 1})
+                        if time.monotonic() - start_time > max_time_per_run:
+                            break
+                    # Wait for completion conditions
+                    total_run_time = min(time.monotonic() - start_time, max_time_per_run)
 
-                total_run_time = manage_run_time(
-                    max_time_per_run=max_time_per_run,
-                    max_requests_per_run=max_requests_per_run,
-                    environment=environment,
-                )
+                else:
+                    logger.info(
+                        f"Starting benchmark with concurrency={concurrency}, "
+                        f"spawn_rate={actual_spawn_rate}"
+                    )
+                    environment.runner.start(
+                        concurrency, spawn_rate=actual_spawn_rate
+                    )
+
+                    total_run_time = manage_run_time(
+                        max_time_per_run=max_time_per_run,
+                        max_requests_per_run=max_requests_per_run,
+                        environment=environment,
+                    )
 
                 environment.runner.stop()
 

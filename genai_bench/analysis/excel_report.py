@@ -139,6 +139,7 @@ def _create_summary_sheet_common(
     summary_iteration_header_map = {
         "batch_size": "Batch Size at target throughput (>{} tokens/s)",
         "num_concurrency": "Concurrency at target speed (>{} tokens/s)",
+        "poisson_arrival_rate": "Poisson Arrival Rate at target speed (>{} tokens/s)",
     }
 
     threshold = 100 if is_embedding else 10
@@ -234,6 +235,7 @@ def _create_appendix_sheet_common(
     iteration_header_map = {
         "batch_size": "Batch Size",
         "num_concurrency": "Concurrency",
+        "poisson_arrival_rate": "Poisson Arrival Rate (users/s)",
     }
     headers = [
         "GPU Type",

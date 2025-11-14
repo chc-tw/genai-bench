@@ -129,9 +129,12 @@ class AggregatedMetrics(BaseModel):
     scenario: Optional[str] = Field(None, description="The sample scenario")
     num_concurrency: int = Field(1, description="Number of concurrency")
     batch_size: int = Field(1, description="Batch size for embedding tasks")
+    poisson_arrival_rate: Optional[int] = Field(
+        None, description="Poisson arrival rate (users per second)"
+    )
     iteration_type: str = Field(
         "num_concurrency",
-        description="Type of iteration used (num_concurrency or batch_size)",
+        description="Type of iteration used (num_concurrency, batch_size, or poisson_arrival_rate)",
     )
 
     run_duration: float = Field(0.0, description="Run duration in seconds.")

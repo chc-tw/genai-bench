@@ -101,6 +101,7 @@ def load_one_experiment(
         {
             "batch_size": experiment_metadata.batch_size,
             "num_concurrency": experiment_metadata.num_concurrency,
+            "poisson_arrival_rate": experiment_metadata.poisson_arrival_rate,
         }.get(experiment_metadata.iteration_type, [])
     )
 
@@ -220,11 +221,12 @@ def load_run_data(
 
         # Get the iteration type and value
         iteration_type = aggregated_metrics.iteration_type
-        iteration_value = (
-            aggregated_metrics.batch_size
-            if iteration_type == "batch_size"
-            else aggregated_metrics.num_concurrency
-        )
+        if iteration_type == "batch_size":
+            iteration_value = aggregated_metrics.batch_size
+        elif iteration_type == "poisson_arrival_rate":
+            iteration_value = aggregated_metrics.poisson_arrival_rate
+        else:
+            iteration_value = aggregated_metrics.num_concurrency
 
         # Store iteration values in scenario data
         iteration_key = f"{iteration_type}_levels"

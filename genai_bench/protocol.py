@@ -188,7 +188,10 @@ class ExperimentMetadata(BaseModel):
     batch_size: Optional[List[int]] = Field(
         None, description="The batch sizes for embedding tasks."
     )
-    iteration_type: Literal["num_concurrency", "batch_size"] = Field(
+    poisson_arrival_rate: Optional[List[int]] = Field(
+        None, description="List of Poisson arrival rates (users per second)."
+    )
+    iteration_type: Literal["num_concurrency", "batch_size", "poisson_arrival_rate"] = Field(
         "num_concurrency", description="Type of iteration used in the experiment."
     )
     traffic_scenario: List[str] = Field(default_factory=list)

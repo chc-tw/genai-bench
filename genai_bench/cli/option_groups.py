@@ -612,6 +612,25 @@ def distributed_locust_options(func):
     return func
 
 
+def poisson_options(func):
+    func = click.option(
+        "--poisson-arrival-rate",
+        type=int,
+        multiple=True,
+        default=None,
+        required=False,
+        help="List of arrival rates (users per second) for a Poisson process. "
+        "If set, users will be spawned following a Poisson distribution, "
+        "and the spawn_rate option will be ignored. "
+        "This will override --num-concurrency for iteration. "
+        "\n\n"
+        "Example to input multiple values:\n"
+        "--poisson-arrival-rate 5 --poisson-arrival-rate 10 \\\n"
+        "--poisson-arrival-rate 20 --poisson-arrival-rate 50",
+    )(func)
+    return func
+
+
 # Storage provider authentication options
 def storage_auth_options(func):
     """Storage provider authentication options.

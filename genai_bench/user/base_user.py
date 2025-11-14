@@ -1,6 +1,7 @@
 from locust import HttpUser, constant
+from locust.exception import StopUser
 
-from typing import Dict
+from typing import Dict, Optional
 from numpy.random import exponential
 from genai_bench.logging import init_logger
 from genai_bench.metrics.request_metrics_collector import RequestMetricsCollector
@@ -12,9 +13,7 @@ logger = init_logger(__name__)
 class BaseUser(HttpUser):
     supported_tasks: Dict[str, str] = {}
 
-    def wait_time(self) -> float:
-        return exponential(1.0 / self.lambda_)
-    # wait_time = constant(0)
+    wait_time = constant(0)
 
     def __new__(cls, *args, **kwargs):
         if cls is BaseUser:
@@ -24,6 +23,9 @@ class BaseUser(HttpUser):
     def __init__(self, *args, **kwargs) -> None:
         # Extract lambda_ from kwargs if provided, otherwise use default
         self.lambda_ = kwargs.pop('lambda_', 1.0)
+        # Extract max_requests to limit the number of requests per user
+        self.max_requests: Optional[int] = kwargs.pop('max_requests', 1)
+        self.request_count: int = 0
         super().__init__(*args, **kwargs)
 
     @classmethod
@@ -96,3 +98,9 @@ class BaseUser(HttpUser):
         self.environment.runner.send_message(
             "request_metrics", request_metrics_collector.metrics.model_dump_json()
         )  # type: ignore[attr-defined]
+        
+        # Check if max_requests limit is reached
+        if self.max_requests is not None:
+            self.request_count += 1
+            if self.request_count >= self.max_requests:
+                raise StopUser()
