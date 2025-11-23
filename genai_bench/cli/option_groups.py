@@ -606,8 +606,9 @@ def experiment_options(func):
     )(func)
     func = click.option(
         "--trace-file",
-        type=str,
-        default="",
+        type=int,
+        multiple=True,
+        default=None,
         required=False,
         help="Trace file for the experiment.",
     )(func)

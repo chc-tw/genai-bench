@@ -196,6 +196,9 @@ class ExperimentMetadata(BaseModel):
     poisson_arrival_rate: Optional[List[int]] = Field(
         None, description="List of Poisson arrival rates (users per second)."
     )
+    trace_file: Optional[List[int]] = Field(
+        None, description="List of trace files for the experiment."
+    )
     iteration_type: Literal["num_concurrency", "batch_size", "poisson_arrival_rate"] = Field(
         "num_concurrency", description="Type of iteration used in the experiment."
     )

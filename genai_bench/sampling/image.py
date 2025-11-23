@@ -166,6 +166,7 @@ class ImageSampler(Sampler):
         chosen = random.choices(self.data, k=num_images)
         for item in chosen:
             prompt: str = ""
+            assistant_prompt: str = ""
             raw_image: Any = None
             # Backward-compatible format
             if isinstance(item, tuple) and len(item) == 2:

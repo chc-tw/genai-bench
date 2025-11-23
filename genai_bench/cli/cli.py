@@ -340,6 +340,7 @@ def benchmark(
         poisson_arrival_rate=list(poisson_arrival_rate)
         if poisson_arrival_rate
         else None,
+        trace_file=list(trace_file) if trace_file else None,
         iteration_type=metadata_iteration_type,
         traffic_scenario=traffic_scenario,
         server_engine=server_engine,
@@ -399,6 +400,11 @@ def benchmark(
             batch_size if iteration_type == "batch_size" else num_concurrency
         )
     total_runs = len(traffic_scenario) * len(iteration_values)
+
+    iteration_values = list(iteration_values)
+    if trace_file and len(trace_file) > 0:
+        for trace_file_id in trace_file:
+            iteration_values.append(f"trace-{trace_file_id}")
     with dashboard.live:
         for scenario_str in traffic_scenario:
             dashboard.reset_plot_metrics()
@@ -420,6 +426,7 @@ def benchmark(
                     batch_size = 1
                     concurrency = 1  # Not used in Poisson mode
                     current_arrival_rate = iteration
+                    wait_times = None
                 else:
                     iteration_header, batch_size, concurrency = get_run_params(
                         iteration_type, iteration
@@ -427,15 +434,14 @@ def benchmark(
                     current_arrival_rate = None
                     wait_times = None
 
-                if trace_file != "":
-                    trace_file_path = f"datasets/qps{trace_file}.txt"
+                if isinstance(iteration, str) and "trace-" in iteration:
+                    trace_file_id = int(iteration.split("-")[1])
+                    trace_file_path = f"datasets/qps{trace_file_id}.txt"
                     with open(trace_file_path, "r") as f:
                         wait_times = [float(line.strip()) for line in f.readlines()]
-                    assert len(wait_times) + 1 == max_requests_per_run, (
-                        f"Number of wait times must match max requests per run {max_requests_per_run} but got {len(wait_times) + 1}"
-                    )
+                    assert len(wait_times) + 1 == max_requests_per_run, f"Number of wait times must match max requests per run {max_requests_per_run} but got {len(wait_times) + 1}"
                     iteration_header = "Trace w/ Peak QPS"
-                    iteration = trace_file
+                    iteration = trace_file_id
 
                 dashboard.create_benchmark_progress_task(
                     f"Scenario: {scenario_str}, {iteration_header}: {iteration}"
