@@ -1,6 +1,6 @@
 import json
 import random
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from genai_bench.data.config import DatasetConfig
 from genai_bench.logging import init_logger
@@ -75,7 +75,7 @@ class TextSampler(Sampler):
             num_input_tokens, num_output_tokens = scenario.sample()
             self.additional_request_params["ignore_eos"] = True
 
-        prompt = self._sample_text(num_input_tokens)
+        prompt, assistant_prompt = self._sample_text(num_input_tokens)
         if isinstance(prompt, list):
             prompt = json.dumps(prompt)
         num_prefill_tokens = self.get_token_length(prompt)
@@ -85,6 +85,7 @@ class TextSampler(Sampler):
         return UserChatRequest(
             model=self.model,
             prompt=prompt,
+            assistant_prompt=assistant_prompt,
             num_prefill_tokens=num_prefill_tokens,
             max_tokens=num_output_tokens,
             additional_request_params=self.additional_request_params,
@@ -124,7 +125,7 @@ class TextSampler(Sampler):
             self._validate_scenario(scenario)
             tokens_per_document, tokens_per_query = scenario.sample()
 
-        query = self._sample_text(tokens_per_query)
+        query, assistant_prompt = self._sample_text(tokens_per_query)
         # Sample different documents for each batch item
         documents = [
             self._sample_text(tokens_per_document) for _ in range(self.batch_size)
@@ -168,7 +169,7 @@ class TextSampler(Sampler):
                 f"{type(scenario.scenario_type)}"
             )
 
-    def _sample_text(self, num_input_tokens: Optional[int]) -> str:
+    def _sample_text(self, num_input_tokens: Optional[int]) -> Tuple[str, Optional[str]]:
         """
         Samples text from a list of lines based on the specified number of
         input tokens. If num_input_tokens is None, samples a random line
@@ -181,7 +182,11 @@ class TextSampler(Sampler):
             str: A text prompt containing the desired number of tokens.
         """
         if not num_input_tokens:
-            return random.choice(self.data)
+            chosen = random.choice(self.data)
+            if isinstance(chosen, dict):
+                return chosen["user_prompt"], chosen["assistant_prompt"]
+            else:
+                return chosen, None
 
         data_copy = self.data.copy()
         prompt = ""

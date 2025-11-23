@@ -68,12 +68,15 @@ class ImageSampler(Sampler):
         else:
             self._validate_scenario(scenario)
             image_dimension, num_images, num_output_tokens = scenario.sample()
-        prompt, image_content = self._sample_image_and_text(image_dimension, num_images)
+        data = self._sample_image_and_text(image_dimension, num_images)
+        prompt = data["user_prompt"]
+        image_content = data["image"]
+        assistant_prompt = data.get("assistant_prompt", None)
 
         # TODO: create Delegated Request Creator to replace if-else
         if self.output_modality == "text":
             return self._generate_image_chat_request(
-                prompt, image_content, num_images, num_output_tokens
+                prompt, image_content, assistant_prompt, num_images, num_output_tokens
             )
         elif self.output_modality == "embeddings":
             return self._generate_image_embedding_request(image_content, num_images)
@@ -84,6 +87,7 @@ class ImageSampler(Sampler):
         self,
         prompt: str,
         image_content: List[str],
+        assistant_prompt: str,
         num_images: int,
         num_output_tokens: int | None,
     ) -> UserImageChatRequest:
@@ -103,6 +107,7 @@ class ImageSampler(Sampler):
             model=self.model,
             prompt=prompt,
             image_content=image_content,
+            assistant_prompt=assistant_prompt,
             num_images=num_images,
             max_tokens=num_output_tokens,
             num_prefill_tokens=None,
@@ -157,7 +162,7 @@ class ImageSampler(Sampler):
         """
         images: List[str] = []
         texts: List[str] = []
-
+        responses: List[str] = []
         chosen = random.choices(self.data, k=num_images)
         for item in chosen:
             prompt: str = ""
@@ -173,7 +178,12 @@ class ImageSampler(Sampler):
                 if cfg.prompt_lambda:
                     prompt = safe_eval_prompt(cfg.prompt_lambda, item)
                 elif cfg.prompt_column:
-                    prompt = str(item.get(cfg.prompt_column, ""))
+                    conversation = str(item.get(cfg.prompt_column, ""))
+                    if isinstance(conversation, list):
+                        prompt = conversation[0]['value']
+                        assistant_prompt = conversation[1]['value']
+                    else:
+                        prompt = conversation
             else:
                 continue
 
@@ -184,8 +194,9 @@ class ImageSampler(Sampler):
             )
             images.append(processed_image)
             texts.append(prompt or "")
+            responses.append(assistant_prompt or "")
 
-        return " ".join(texts), images
+        return {"user_prompt": " ".join(texts), "assistant_prompt": " ".join(responses), "image": images}
 
     @staticmethod
     def process_image(image: Any, resize: Optional[Tuple[int, int]] = None) -> str:
