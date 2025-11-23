@@ -138,7 +138,8 @@ class AggregatedMetricsCollector:
         filtered_keys: List[str] = [
             key
             for key in RequestLevelMetrics.model_fields
-            if key not in {"error_code", "error_message"}
+            if key
+            not in {"error_code", "error_message", "generated_text", "answer_text"}
         ]
 
         warmup_number = 0

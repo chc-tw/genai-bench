@@ -84,6 +84,9 @@ class RequestMetricsCollector:
                 f"{self.metrics.num_output_tokens} is <= 1. Please check"
                 f" your server and request!"
             )
+        
+        self.metrics.generated_text = response.generated_text
+        self.metrics.answer_text = response.answer_text
 
     def _reset_output_metrics(self):
         """Helper function to reset all output-related metrics to 0."""

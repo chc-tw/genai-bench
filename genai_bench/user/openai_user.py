@@ -1,13 +1,12 @@
 """Customized user for OpenAI backends."""
 
-from locust import task
-
 import json
 import random
 import time
 from typing import Any, Callable, Dict, Optional
 
 import requests
+from locust import task
 from requests import Response
 
 from genai_bench.auth.model_auth_provider import ModelAuthProvider
@@ -126,7 +125,13 @@ class OpenAIUser(BaseUser):
             ),
             **user_request.additional_request_params,
         }
-        self.send_request(False, endpoint, payload, self.parse_embedding_response)
+        self.send_request(
+            False,
+            endpoint,
+            payload,
+            self.parse_embedding_response,
+            assistant_prompt=user_request.assistant_prompt,
+        )
 
     def send_request(
         self,
@@ -135,6 +140,7 @@ class OpenAIUser(BaseUser):
         payload: Dict[str, Any],
         parse_strategy: Callable[..., UserResponse],
         num_prefill_tokens: Optional[int] = None,
+        assistant_prompt: Optional[str] = None,
     ) -> UserResponse:
         """
         Sends a POST request, handling both streaming and non-streaming
@@ -170,6 +176,7 @@ class OpenAIUser(BaseUser):
                     start_time,
                     num_prefill_tokens,
                     non_stream_post_end_time,
+                    assistant_prompt,
                 )
             else:
                 metrics_response = UserResponse(
@@ -180,7 +187,7 @@ class OpenAIUser(BaseUser):
             # T_wait = target_T_loop - (non_stream_post_end_time - start_time)
             # if T_wait > 0:
             #     time.sleep(T_wait)
-                
+
         except requests.exceptions.ConnectionError as e:
             metrics_response = UserResponse(
                 status_code=503, error_message=f"Connection error: {e}"
@@ -207,6 +214,7 @@ class OpenAIUser(BaseUser):
         start_time: float,
         num_prefill_tokens: int,
         _: float,
+        assistant_prompt: Optional[str] = None,
     ) -> UserResponse:
         """
         Parses a streaming response.
@@ -338,8 +346,10 @@ class OpenAIUser(BaseUser):
                 "server. Estimated tokens_received based on the model "
                 "tokenizer."
             )
+        answer_text = assistant_prompt if assistant_prompt else ""
         return UserChatResponse(
             status_code=200,
+            answer_text=answer_text,
             generated_text=generated_text,
             tokens_received=tokens_received,
             time_at_first_token=time_at_first_token,

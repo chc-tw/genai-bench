@@ -30,6 +30,8 @@ class RequestLevelMetrics(BaseModel):
     )
     error_code: Optional[int] = Field(None, description="Error code")
     error_message: Optional[str] = Field(None, description="Error message")
+    generated_text: Optional[str] = Field(None, description="Generated text")
+    answer_text: Optional[str] = Field(None, description="Answer text (Ground truth)")
 
     # Class-level dictionaries to map output metrics to output fields
     OUTPUT_METRICS_FIELDS: ClassVar[set[str]] = {
@@ -53,7 +55,13 @@ class RequestLevelMetrics(BaseModel):
             # Validate all metric fields
             for field_name, field_value in values.items():
                 if (
-                    field_name not in {"error_code", "error_message"}
+                    field_name
+                    not in {
+                        "error_code",
+                        "error_message",
+                        "generated_text",
+                        "answer_text",
+                    }
                     and field_value is None
                 ):
                     raise ValueError(
@@ -134,7 +142,8 @@ class AggregatedMetrics(BaseModel):
     )
     iteration_type: str = Field(
         "num_concurrency",
-        description="Type of iteration used (num_concurrency, batch_size, or poisson_arrival_rate)",
+        description="Type of iteration used "
+        "(num_concurrency, batch_size, or poisson_arrival_rate)",
     )
 
     run_duration: float = Field(0.0, description="Run duration in seconds.")

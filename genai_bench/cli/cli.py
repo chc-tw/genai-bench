@@ -1,14 +1,11 @@
-from locust.env import Environment
-from locust.runners import WorkerRunner
-
 import os
 import sys
 import time
 from pathlib import Path
 
 import click
-import gevent
-from gevent.pool import Pool
+from locust.env import Environment
+from locust.runners import WorkerRunner
 from numpy.random import exponential
 
 from genai_bench.analysis.excel_report import create_workbook
@@ -43,7 +40,6 @@ from genai_bench.storage.factory import StorageFactory
 from genai_bench.ui.dashboard import create_dashboard
 from genai_bench.utils import calculate_sonnet_char_token_ratio, sanitize_string
 from genai_bench.version import __version__ as GENAI_BENCH_VERSION
-
 
 logger = init_logger(__name__)
 
@@ -338,7 +334,9 @@ def benchmark(
         task=task,
         num_concurrency=num_concurrency,
         batch_size=batch_size,
-        poisson_arrival_rate=list(poisson_arrival_rate) if poisson_arrival_rate else None,
+        poisson_arrival_rate=list(poisson_arrival_rate)
+        if poisson_arrival_rate
+        else None,
         iteration_type=metadata_iteration_type,
         traffic_scenario=traffic_scenario,
         server_engine=server_engine,
@@ -394,7 +392,9 @@ def benchmark(
         iteration_values = poisson_arrival_rate
         iteration_type = "poisson_arrival_rate"
     else:
-        iteration_values = batch_size if iteration_type == "batch_size" else num_concurrency
+        iteration_values = (
+            batch_size if iteration_type == "batch_size" else num_concurrency
+        )
     total_runs = len(traffic_scenario) * len(iteration_values)
     with dashboard.live:
         for scenario_str in traffic_scenario:
@@ -422,7 +422,7 @@ def benchmark(
                         iteration_type, iteration
                     )
                     current_arrival_rate = None
-                
+
                 dashboard.create_benchmark_progress_task(
                     f"Scenario: {scenario_str}, {iteration_header}: {iteration}"
                 )
@@ -442,7 +442,7 @@ def benchmark(
                 actual_spawn_rate = (
                     spawn_rate if spawn_rate is not None else concurrency
                 )
-                
+
                 # Check if we're using Poisson arrival rate mode
                 if current_arrival_rate is not None:
                     logger.info(
@@ -459,16 +459,16 @@ def benchmark(
                         if time.monotonic() - start_time > max_time_per_run:
                             break
                     # Wait for completion conditions
-                    total_run_time = min(time.monotonic() - start_time, max_time_per_run)
+                    total_run_time = min(
+                        time.monotonic() - start_time, max_time_per_run
+                    )
 
                 else:
                     logger.info(
                         f"Starting benchmark with concurrency={concurrency}, "
                         f"spawn_rate={actual_spawn_rate}"
                     )
-                    environment.runner.start(
-                        concurrency, spawn_rate=actual_spawn_rate
-                    )
+                    environment.runner.start(concurrency, spawn_rate=actual_spawn_rate)
 
                     total_run_time = manage_run_time(
                         max_time_per_run=max_time_per_run,
