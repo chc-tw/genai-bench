@@ -550,6 +550,21 @@ def experiment_options(func):
              """,
     )(func)
     func = click.option(
+        "--poisson-arrival-rate",
+        type=int,
+        multiple=True,
+        default=None,
+        required=False,
+        help="List of arrival rates (users per second) for a Poisson process. "
+        "If set, users will be spawned following a Poisson distribution, "
+        "and the spawn_rate option will be ignored. "
+        "This will override --num-concurrency for iteration. "
+        "\n\n"
+        "Example to input multiple values:\n"
+        "--poisson-arrival-rate 5 --poisson-arrival-rate 10 \\\n"
+        "--poisson-arrival-rate 20 --poisson-arrival-rate 50",
+    )(func)
+    func = click.option(
         "--iteration-type",
         type=click.Choice(["num_concurrency", "batch_size"], case_sensitive=False),
         default="num_concurrency",
@@ -582,6 +597,20 @@ def experiment_options(func):
         help="Time unit for latency metrics display and export. "
         "Options: 's' (seconds), 'ms' (milliseconds). Default: s",
     )(func)
+    func = click.option(
+        "--seed",
+        type=int,
+        default=42,
+        required=False,
+        help="Random seed for the experiment.",
+    )(func)
+    func = click.option(
+        "--trace-file",
+        type=str,
+        default="",
+        required=False,
+        help="Trace file for the experiment.",
+    )(func)
     return func
 
 
@@ -608,25 +637,6 @@ def distributed_locust_options(func):
         required=False,
         help="Number of users to spawn per second. Defaults to concurrency value. "
         "Use lower values (e.g., 10-50) for LLM workloads to prevent worker overload.",
-    )(func)
-    return func
-
-
-def poisson_options(func):
-    func = click.option(
-        "--poisson-arrival-rate",
-        type=int,
-        multiple=True,
-        default=None,
-        required=False,
-        help="List of arrival rates (users per second) for a Poisson process. "
-        "If set, users will be spawned following a Poisson distribution, "
-        "and the spawn_rate option will be ignored. "
-        "This will override --num-concurrency for iteration. "
-        "\n\n"
-        "Example to input multiple values:\n"
-        "--poisson-arrival-rate 5 --poisson-arrival-rate 10 \\\n"
-        "--poisson-arrival-rate 20 --poisson-arrival-rate 50",
     )(func)
     return func
 

@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -22,7 +23,6 @@ from genai_bench.cli.option_groups import (
     model_auth_options,
     object_storage_options,
     oci_auth_options,
-    poisson_options,
     sampling_options,
     server_options,
     storage_auth_options,
@@ -69,7 +69,6 @@ def cli(ctx):
 @distributed_locust_options
 @object_storage_options
 @storage_auth_options
-@poisson_options
 @click.pass_context
 def benchmark(
     ctx,
@@ -82,6 +81,9 @@ def benchmark(
     task,
     iteration_type,
     num_concurrency,
+    poisson_arrival_rate,
+    seed,
+    trace_file,
     warmup_ratio,
     cooldown_ratio,
     batch_size,
@@ -146,11 +148,12 @@ def benchmark(
     github_owner,
     github_repo,
     metrics_time_unit,
-    poisson_arrival_rate,
 ):
     """
     Run a benchmark based on user defined scenarios.
     """
+    if seed != -1:
+        random.seed(seed)
     # Set up the dashboard and layout
     dashboard = create_dashboard(metrics_time_unit)
 
@@ -422,6 +425,17 @@ def benchmark(
                         iteration_type, iteration
                     )
                     current_arrival_rate = None
+                    wait_times = None
+
+                if trace_file != "":
+                    trace_file_path = f"datasets/qps{trace_file}.txt"
+                    with open(trace_file_path, "r") as f:
+                        wait_times = [float(line.strip()) for line in f.readlines()]
+                    assert len(wait_times) + 1 == max_requests_per_run, (
+                        f"Number of wait times must match max requests per run {max_requests_per_run} but got {len(wait_times) + 1}"
+                    )
+                    iteration_header = "Trace w/ Peak QPS"
+                    iteration = trace_file
 
                 dashboard.create_benchmark_progress_task(
                     f"Scenario: {scenario_str}, {iteration_header}: {iteration}"
@@ -436,6 +450,8 @@ def benchmark(
 
                 # Start the run
                 start_time = time.monotonic()
+                if environment.runner.stats:
+                    environment.runner.stats.reset_all()
                 dashboard.start_run(max_time_per_run, start_time, max_requests_per_run)
 
                 # Use custom spawn rate if provided, otherwise use concurrency
@@ -453,12 +469,24 @@ def benchmark(
                     start_time = time.monotonic()
                     while num_requests < max_requests_per_run:
                         wait_time = exponential(1.0 / current_arrival_rate)
+                        if wait_times:
+                            wait_time = (
+                                wait_times[num_requests]
+                                if num_requests < len(wait_times)
+                                else 0
+                            )
                         time.sleep(wait_time)
                         num_requests += 1
                         environment.runner.spawn_users({user_class.__name__: 1})
                         if time.monotonic() - start_time > max_time_per_run:
                             break
                     # Wait for completion conditions
+
+                    while (
+                        environment.runner.stats.total.num_requests
+                        < max_requests_per_run
+                    ):
+                        time.sleep(1)
                     total_run_time = min(
                         time.monotonic() - start_time, max_time_per_run
                     )

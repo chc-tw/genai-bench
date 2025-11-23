@@ -113,7 +113,7 @@ class MetricStats(BaseModel):
         return {
             name: getattr(self, name).model_dump()
             for name in RequestLevelMetrics.model_fields
-            if name not in {"error_code", "error_message"}
+            if name not in {"error_code", "error_message", "answer_text", "generated_text"}
         }
 
     @classmethod

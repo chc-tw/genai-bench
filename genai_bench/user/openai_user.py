@@ -101,6 +101,7 @@ class OpenAIUser(BaseUser):
             payload,
             self.parse_chat_response,
             user_request.num_prefill_tokens,
+            assistant_prompt=user_request.assistant_prompt,
         )
 
     @task
@@ -130,7 +131,6 @@ class OpenAIUser(BaseUser):
             endpoint,
             payload,
             self.parse_embedding_response,
-            assistant_prompt=user_request.assistant_prompt,
         )
 
     def send_request(

@@ -23,11 +23,11 @@ class TextDatasetLoader(DatasetLoader):
     }
     media_type = "Text"
 
-    def _process_loaded_data(self, data: Any) -> Dict[str, List[str]]:
+    def _process_loaded_data(self, data: Any) -> List[Dict[str, str]]:
         """Process data loaded from dataset source."""
         # Handle data from dataset sources
         if isinstance(data, list):
-            return {"user_prompt": data}
+            return [{"user_prompt": item} for item in data]
 
         # Handle dictionary data (from CSV files) or HuggingFace datasets
         prompt_column = self.dataset_config.prompt_column
@@ -43,17 +43,12 @@ class TextDatasetLoader(DatasetLoader):
             column_data = data[prompt_column]
             # Ensure we return a list of strings
             if isinstance(column_data, list):
-                return {"user_prompt": [str(item) for item in column_data]}
+                return [{"user_prompt": str(item)} for item in column_data]
             else:
                 # For HuggingFace datasets, convert to list
                 if isinstance(column_data[0], list): # for sharegpt4o, column_data is a list of list of dicts
-                    user_prompt = []
-                    ai_response = []
-                    for item in column_data:
-                        user_prompt.append(item[0]['value'])
-                        ai_response.append(item[1]['value'])
-                    return {"user_prompt": user_prompt, "assistant_prompt": ai_response}
-                return {"user_prompt": list(column_data)}
+                    return [{"user_prompt": item[0]['value'], "assistant_prompt": item[1]['value']} for item in column_data]
+                return [{"user_prompt": str(item)} for item in column_data]
         except (ValueError, KeyError) as e:
             # Provide helpful error message with available columns
             if isinstance(data, dict):
