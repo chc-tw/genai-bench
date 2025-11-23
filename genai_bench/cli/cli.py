@@ -152,8 +152,8 @@ def benchmark(
     """
     Run a benchmark based on user defined scenarios.
     """
-    if seed != -1:
-        random.seed(seed)
+    if int(seed) != -1:
+        random.seed(int(seed))
     # Set up the dashboard and layout
     dashboard = create_dashboard(metrics_time_unit)
 
