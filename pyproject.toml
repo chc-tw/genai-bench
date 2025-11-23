@@ -37,6 +37,7 @@ dependencies = [
     "huggingface_hub>=0.20.0",
     "torch>=2.9.0",
     "torchvision>=0.24.0",
+    "bert-score>=0.3.13",
 ]
 
 [project.scripts]

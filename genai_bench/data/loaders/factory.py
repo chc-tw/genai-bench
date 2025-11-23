@@ -1,6 +1,6 @@
 """Factory for creating appropriate data loaders and loading data."""
 
-from typing import Any, List, Tuple, Union, cast
+from typing import Any, Dict, List, Tuple, Union, cast
 
 from genai_bench.data.config import DatasetConfig
 from genai_bench.data.loaders.image import ImageDatasetLoader
@@ -16,7 +16,7 @@ class DataLoaderFactory:
     @staticmethod
     def load_data_for_task(
         task: str, dataset_config: DatasetConfig
-    ) -> Union[List[str], List[Tuple[str, Any]]]:
+    ) -> Union[List[str], List[Tuple[str, Any]], Tuple[List[str], List[str]]]:
         """Load data for a specific task.
 
         Args:
@@ -38,15 +38,15 @@ class DataLoaderFactory:
     @staticmethod
     def _load_text_data(
         dataset_config: DatasetConfig, output_modality: str
-    ) -> List[str]:
+    ) -> Dict[str, List[str]]:
         """Load text data."""
 
         loader = TextDatasetLoader(dataset_config)
         data = loader.load_request()
 
         # TextDatasetLoader always returns List[str]
-        text_data = cast(List[str], data)
-        return text_data
+        # text_data = cast(Union[List[str], Tuple[List[str], List[str]]], data)
+        return data
 
     @staticmethod
     def _load_image_data(

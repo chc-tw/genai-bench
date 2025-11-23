@@ -23,8 +23,11 @@ class UserChatRequest(UserRequest):
     """
 
     prompt: str = Field(..., description="Prompt to send to the LLM API server.")
+    assistant_prompt: Optional[str] = Field(
+        None, description="Assistant prompt to validate the response."
+    )
     num_prefill_tokens: int | None = Field(
-        ..., description="Number of tokens in the prompt."
+        ..., description="Number of tokens in the user prompt."
     )
     max_tokens: int | None = Field(
         ..., description="Number of maximum tokens expected in the generation."
