@@ -401,6 +401,7 @@ def benchmark(
         )
 
     iteration_values = list(iteration_values)
+    iteration_values = []
     if trace_file and len(trace_file) > 0:
         logger.info(f"trace_file: {trace_file}")
         iteration_type = "poisson_arrival_rate"
@@ -448,7 +449,7 @@ def benchmark(
                         logger.warning(f"Number of wait times must beatch max requests per run {max_requests_per_run} but got {len(wait_times) + 1}, truncated to {len(wait_times) + 1}")
                     if len(wait_times) + 1 < max_requests_per_run:
                         raise ValueError(f"Number of wait times must be greater than or equal to max requests per run {max_requests_per_run} but got {len(wait_times) + 1}")
-                    iteration_header = "Trace w/ Peak QPS"
+                    iteration_header = "Trace with Peak QPS"
                     iteration = trace_file_id
 
                 dashboard.create_benchmark_progress_task(
@@ -569,7 +570,7 @@ def benchmark(
                 #     f"{iteration}_time_{total_run_time}s.json"
                 # )
                 run_name = (
-                    f"{iteration_header}_{iteration}"
+                    f"{iteration_header}_{iteration}.json"
                 )
                 aggregated_metrics_collector.save(
                     os.path.join(experiment_folder_abs_path, run_name),
