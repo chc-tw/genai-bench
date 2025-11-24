@@ -152,8 +152,6 @@ def benchmark(
     """
     Run a benchmark based on user defined scenarios.
     """
-    if int(seed) != -1:
-        random.seed(int(seed))
     # Set up the dashboard and layout
     dashboard = create_dashboard(metrics_time_unit)
 
@@ -164,7 +162,6 @@ def benchmark(
         f"👋 Welcome to genai-bench {GENAI_BENCH_VERSION}! I am an intelligent "
         "benchmark tool for Large Language Model."
     )
-
     # Log all parameters
     logger.info("Options you provided:")
     for key, value in ctx.params.items():
@@ -422,6 +419,7 @@ def benchmark(
             }
 
             for iteration in iteration_values:
+                random.seed(42)
                 dashboard.reset_panels()
                 # Create a new progress bar on dashboard
                 # Handle poisson_arrival_rate iteration type separately
