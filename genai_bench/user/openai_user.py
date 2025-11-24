@@ -178,6 +178,10 @@ class OpenAIUser(BaseUser):
                     non_stream_post_end_time,
                     assistant_prompt,
                 )
+                if metrics_response.num_prefill_tokens is None:
+                    logger.warning(f"metrics_response: {metrics_response} is invalid")
+                    metrics_response.status_code = 500
+                    metrics_response.error_message = "Invalid response"
             else:
                 metrics_response = UserResponse(
                     status_code=response.status_code,

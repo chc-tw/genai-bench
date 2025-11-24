@@ -179,7 +179,7 @@ class ImageSampler(Sampler):
                 if cfg.prompt_lambda:
                     prompt = safe_eval_prompt(cfg.prompt_lambda, item)
                 elif cfg.prompt_column:
-                    conversation = str(item.get(cfg.prompt_column, ""))
+                    conversation = item.get(cfg.prompt_column, "")
                     if isinstance(conversation, list):
                         prompt = conversation[0]['value']
                         assistant_prompt = conversation[1]['value']

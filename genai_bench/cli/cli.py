@@ -399,12 +399,13 @@ def benchmark(
         iteration_values = (
             batch_size if iteration_type == "batch_size" else num_concurrency
         )
-    total_runs = len(traffic_scenario) * len(iteration_values)
 
     iteration_values = list(iteration_values)
     if trace_file and len(trace_file) > 0:
         for trace_file_id in trace_file:
             iteration_values.append(f"trace-{trace_file_id}")
+            
+    total_runs = len(traffic_scenario) * len(iteration_values)
     with dashboard.live:
         for scenario_str in traffic_scenario:
             dashboard.reset_plot_metrics()
@@ -439,7 +440,11 @@ def benchmark(
                     trace_file_path = f"datasets/qps{trace_file_id}.txt"
                     with open(trace_file_path, "r") as f:
                         wait_times = [float(line.strip()) for line in f.readlines()]
-                    assert len(wait_times) + 1 == max_requests_per_run, f"Number of wait times must match max requests per run {max_requests_per_run} but got {len(wait_times) + 1}"
+                    if len(wait_times) + 1 > max_requests_per_run:
+                        wait_times = wait_times[:max_requests_per_run - 1]
+                        logger.warning(f"Number of wait times must beatch max requests per run {max_requests_per_run} but got {len(wait_times) + 1}, truncated to {len(wait_times) + 1}")
+                    if len(wait_times) + 1 < max_requests_per_run:
+                        raise ValueError(f"Number of wait times must be greater than or equal to max requests per run {max_requests_per_run} but got {len(wait_times) + 1}")
                     iteration_header = "Trace w/ Peak QPS"
                     iteration = trace_file_id
 
@@ -492,7 +497,11 @@ def benchmark(
                         environment.runner.stats.total.num_requests
                         < max_requests_per_run
                     ):
+                        logger.info(f"Waiting for completion conditions: {environment.runner.stats.total.num_requests} / {max_requests_per_run}")
+                        logger.info(f"Time elapsed: {time.monotonic() - start_time} / {max_time_per_run} seconds")
                         time.sleep(1)
+                        if time.monotonic() - start_time > max_time_per_run:
+                            break
                     total_run_time = min(
                         time.monotonic() - start_time, max_time_per_run
                     )
