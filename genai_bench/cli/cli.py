@@ -402,10 +402,13 @@ def benchmark(
 
     iteration_values = list(iteration_values)
     if trace_file and len(trace_file) > 0:
+        logger.info(f"trace_file: {trace_file}")
+        iteration_type = "poisson_arrival_rate"
         for trace_file_id in trace_file:
             iteration_values.append(f"trace-{trace_file_id}")
             
     total_runs = len(traffic_scenario) * len(iteration_values)
+    logger.info(f"{iteration_type}: {iteration_values}")
     with dashboard.live:
         for scenario_str in traffic_scenario:
             dashboard.reset_plot_metrics()
@@ -479,13 +482,15 @@ def benchmark(
                     num_requests = 0
                     start_time = time.monotonic()
                     while num_requests < max_requests_per_run:
-                        wait_time = exponential(1.0 / current_arrival_rate)
                         if wait_times:
                             wait_time = (
                                 wait_times[num_requests]
                                 if num_requests < len(wait_times)
                                 else 0
                             )
+                        else:
+                            wait_time = exponential(1.0 / current_arrival_rate)
+
                         time.sleep(wait_time)
                         num_requests += 1
                         environment.runner.spawn_users({user_class.__name__: 1})
@@ -559,9 +564,12 @@ def benchmark(
                 )
 
                 # Save and clear metrics after each run
+                # run_name = (
+                #     f"{sanitized_scenario_str}_{task}_{iteration_type}_"
+                #     f"{iteration}_time_{total_run_time}s.json"
+                # )
                 run_name = (
-                    f"{sanitized_scenario_str}_{task}_{iteration_type}_"
-                    f"{iteration}_time_{total_run_time}s.json"
+                    f"{iteration_header}_{iteration}"
                 )
                 aggregated_metrics_collector.save(
                     os.path.join(experiment_folder_abs_path, run_name),
