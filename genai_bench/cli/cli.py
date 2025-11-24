@@ -401,7 +401,6 @@ def benchmark(
         )
 
     iteration_values = list(iteration_values)
-    iteration_values = []
     if trace_file and len(trace_file) > 0:
         logger.info(f"trace_file: {trace_file}")
         iteration_type = "poisson_arrival_rate"
