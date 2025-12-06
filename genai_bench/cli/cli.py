@@ -608,25 +608,25 @@ def benchmark(
     logger.info("🚀 The whole experiment has finished!")
 
     # Generate excel and plots for report
-    experiment_metadata, run_data = load_one_experiment(experiment_folder_abs_path)
-    create_workbook(
-        experiment_metadata,
-        run_data,
-        os.path.join(
-            experiment_folder_abs_path,
-            f"{Path(experiment_folder_abs_path).name}_summary.xlsx",
-        ),
-        percentile="mean",
-        metrics_time_unit=metrics_time_unit,
-    )
-    plot_experiment_data_flexible(
-        [
-            (experiment_metadata, run_data),
-        ],
-        group_key="traffic_scenario",
-        experiment_folder=experiment_folder_abs_path,
-        metrics_time_unit=metrics_time_unit,
-    )
+    # experiment_metadata, run_data = load_one_experiment(experiment_folder_abs_path)
+    # create_workbook(
+    #     experiment_metadata,
+    #     run_data,
+    #     os.path.join(
+    #         experiment_folder_abs_path,
+    #         f"{Path(experiment_folder_abs_path).name}_summary.xlsx",
+    #     ),
+    #     percentile="mean",
+    #     metrics_time_unit=metrics_time_unit,
+    # )
+    # plot_experiment_data_flexible(
+    #     [
+    #         (experiment_metadata, run_data),
+    #     ],
+    #     group_key="traffic_scenario",
+    #     experiment_folder=experiment_folder_abs_path,
+    #     metrics_time_unit=metrics_time_unit,
+    # )
     logger.info(
         f"📁 Please check {experiment_folder_abs_path} "
         f"for the detailed results, sheets, and plots."
