@@ -449,6 +449,8 @@ def benchmark(
                         raise ValueError(f"Number of wait times must be greater than or equal to max requests per run {max_requests_per_run} but got {len(wait_times) + 1}")
                     iteration_header = "Trace with Peak QPS"
                     iteration = trace_file_id
+                    logger.info(f"updated max_requests_per_run to trace length: {len(wait_times) + 1}")
+                    max_requests_per_run = len(wait_times) + 1
 
                 dashboard.create_benchmark_progress_task(
                     f"Scenario: {scenario_str}, {iteration_header}: {iteration}"
