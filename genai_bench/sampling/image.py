@@ -50,6 +50,7 @@ class ImageSampler(Sampler):
             dataset_config=dataset_config,
         )
         self.data = data
+        self.sample_index = 0
 
     def sample(self, scenario: Optional[Scenario]) -> UserRequest:
         """
@@ -163,7 +164,12 @@ class ImageSampler(Sampler):
         images: List[str] = []
         texts: List[str] = []
         responses: List[str] = []
+        
+        # remove all random choices to make sampling deterministic
+        # but keep the original sample logic. Just made the seeds deterministic as the number of samples taken so far
+        random.seed(self.sample_index)
         chosen = random.choices(self.data, k=num_images)
+        self.sample_index += num_images 
         for item in chosen:
             prompt: str = ""
             assistant_prompt: str = ""
